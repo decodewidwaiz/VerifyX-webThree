@@ -1,4 +1,4 @@
-# **App Name**: ProofChain
+# **App Name**: VerifyX
 
 ## Core Features:
 
