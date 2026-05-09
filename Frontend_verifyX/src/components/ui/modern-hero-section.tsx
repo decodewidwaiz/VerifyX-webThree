@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, type Variants } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { ShieldCheck, ArrowRight } from "lucide-react"
 import Link from "next/link"
@@ -80,7 +80,7 @@ export default function HeroGeometric({
   title1?: string
   title2?: string
 }) {
-  const fadeUpVariants = {
+  const fadeUpVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
     visible: (i: number) => ({
       opacity: 1,
@@ -88,7 +88,7 @@ export default function HeroGeometric({
       transition: {
         duration: 1,
         delay: 0.5 + i * 0.2,
-        ease: [0.25, 0.4, 0.25, 1],
+        ease: [0.25, 0.4, 0.25, 1] as const,
       },
     }),
   }
@@ -194,9 +194,9 @@ export default function HeroGeometric({
             animate="visible"
             className="flex flex-wrap items-center justify-center gap-4"
           >
-            <Link href="/verify">
+            <Link href="/auth">
               <button className="px-8 py-4 rounded-full bg-transparent border-2 border-white/20 text-white font-bold text-sm tracking-widest uppercase transition-all duration-300 hover:bg-white/10 hover:border-primary/50 backdrop-blur-md min-w-[200px]">
-                Verify Now
+                Student Verify
               </button>
             </Link>
             <Link href="/auth">

@@ -20,28 +20,35 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import { QRShareModal } from "@/components/shared/QRShareModal";
 import { motion } from "framer-motion";
+import { getWeb3Credential, type Web3CredentialResponse } from "@/lib/web3-api";
+import { shortWallet } from "@/lib/wallet-session";
 
-export default function CredentialDetail({ params }: { params: { id: string } }) {
+type ChainCredential = Web3CredentialResponse["data"] & {
+  txHash?: string;
+  network?: string;
+};
+
+export default function CredentialDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { toast } = useToast();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  
-  const credential = {
-    title: "Master of Science in AI",
-    institution: "Stanford University",
-    holder: "Johnathan Fitzgerald Doe",
-    issueDate: "May 24, 2023",
-    credentialId: `CERT-SF-2023-${params.id.slice(0, 5)}`,
-    hash: "0x3f7a6b2c9e1d8f4a0c2b4d6e8f0a2c4e6b8d0f2a",
-    txHash: "0x88c12f45b67d890a12b34c56d78e90f12a34b56c",
-    network: "Polygon POS",
-    status: "verified" as const
-  };
+  const [credential, setCredential] = useState<ChainCredential | null>(null);
+  const [error, setError] = useState("");
+
+  const badgeStatus = credential?.revoked ? "invalid" : "verified";
+
+  useEffect(() => {
+    getWeb3Credential(id)
+      .then((response) => setCredential({ ...response.data, network: "Polygon POS" }))
+      .catch((err) => setError(err.message || "Credential not found."));
+  }, [id]);
 
   const copyHash = () => {
-    navigator.clipboard.writeText(credential.hash);
+    if (!credential?.credentialHash) return;
+    navigator.clipboard.writeText(credential.credentialHash);
     toast({
       title: "Proof Copied",
       description: "Cryptographic hash saved to clipboard.",
@@ -62,8 +69,8 @@ export default function CredentialDetail({ params }: { params: { id: string } })
               <ArrowRight className="w-3 h-3 rotate-180" /> Back to Identity Hub
             </Link>
             <div className="flex items-center gap-4">
-              <h1 className="text-4xl font-bold font-headline gradient-text">{credential.title}</h1>
-              <StatusBadge status={credential.status} />
+              <h1 className="text-4xl font-bold font-headline gradient-text">Credential #{credential?.id || id}</h1>
+              <StatusBadge status={badgeStatus} />
             </div>
           </div>
           <div className="flex gap-3">
@@ -78,6 +85,12 @@ export default function CredentialDetail({ params }: { params: { id: string } })
             </Button>
           </div>
         </div>
+
+        {!credential && (
+          <Card className="mb-8 border-white/5 bg-white/[0.03] p-6 text-sm text-white/50">
+            {error || "Loading credential from VCRegistry..."}
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Certificate Preview */}
@@ -97,18 +110,18 @@ export default function CredentialDetail({ params }: { params: { id: string } })
                 </div>
                 
                 <div className="space-y-4">
-                  <h3 className="text-4xl font-bold font-headline leading-tight">{credential.title}</h3>
+                  <h3 className="text-4xl font-bold font-headline leading-tight">Verifiable Credential #{credential?.id || id}</h3>
                   <p className="text-lg text-white/40 italic">In recognition of academic achievement awarded to</p>
-                  <p className="text-3xl font-bold text-white">{credential.holder}</p>
+                  <p className="text-3xl font-bold text-white">{shortWallet(credential?.holder) || "Credential Holder"}</p>
                 </div>
                 
                 <div className="pt-8 space-y-4">
                   <div className="flex flex-col items-center gap-2">
                     <div className="flex items-center gap-3">
                       <Building2 className="w-6 h-6 text-primary" />
-                      <span className="font-bold text-xl tracking-tight">{credential.institution}</span>
+                      <span className="font-bold text-xl tracking-tight">{shortWallet(credential?.issuer)}</span>
                     </div>
-                    <p className="text-xs text-white/20 uppercase tracking-[0.2em] font-bold">{credential.issueDate}</p>
+                    <p className="text-xs text-white/20 uppercase tracking-[0.2em] font-bold">{credential?.issuedAt ? new Date(credential.issuedAt * 1000).toLocaleDateString() : "-"}</p>
                   </div>
                 </div>
 
@@ -135,19 +148,19 @@ export default function CredentialDetail({ params }: { params: { id: string } })
                     <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold flex items-center gap-2">
                       <Hash className="w-3 h-3" /> Record ID
                     </p>
-                    <p className="font-mono text-sm font-bold text-white/80">{credential.credentialId}</p>
+                    <p className="font-mono text-sm font-bold text-white/80">{credential?.id || id}</p>
                   </div>
                   <div className="space-y-2">
                     <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold flex items-center gap-2">
                       <Calendar className="w-3 h-3" /> Issuance Timestamp
                     </p>
-                    <p className="text-sm font-bold text-white/80">{credential.issueDate}</p>
+                    <p className="text-sm font-bold text-white/80">{credential?.issuedAt ? new Date(credential.issuedAt * 1000).toLocaleString() : "-"}</p>
                   </div>
                   <div className="space-y-2">
                     <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold flex items-center gap-2">
                       <Building2 className="w-3 h-3" /> Authority
                     </p>
-                    <p className="text-sm font-bold text-white/80">{credential.institution}</p>
+                    <p className="font-mono text-sm font-bold text-white/80">{credential?.issuer || "-"}</p>
                     <div className="mt-2 inline-flex items-center gap-2 px-2 py-0.5 rounded-lg bg-success/10 text-success text-[10px] font-bold uppercase tracking-widest">
                       <CheckCircle2 className="w-3 w-3" /> Verified Signer
                     </div>
@@ -169,7 +182,7 @@ export default function CredentialDetail({ params }: { params: { id: string } })
                       <Globe className="w-3 h-3" /> Tx Hash
                     </p>
                     <div className="flex items-center gap-2 group cursor-pointer" onClick={copyHash}>
-                      <p className="font-mono text-[10px] text-white/40 truncate max-w-[180px] group-hover:text-white transition-colors">{credential.txHash}</p>
+                    <p className="font-mono text-[10px] text-white/40 truncate max-w-[180px] group-hover:text-white transition-colors">{credential?.credentialHash || "-"}</p>
                       <Copy className="w-3 h-3 text-white/20 group-hover:text-primary transition-colors" />
                     </div>
                   </div>
@@ -177,13 +190,13 @@ export default function CredentialDetail({ params }: { params: { id: string } })
                     <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold flex items-center gap-2">
                       <Hash className="w-3 h-3" /> Network
                     </p>
-                    <p className="text-sm font-bold text-white/80">{credential.network}</p>
+                    <p className="text-sm font-bold text-white/80">{credential?.network || "Polygon POS"}</p>
                   </div>
                   <div className="pt-6 space-y-3">
                     <Button variant="outline" className="w-full text-[10px] h-10 border-white/10 bg-white/[0.02] hover:bg-white/5 uppercase font-bold tracking-widest gap-2">
                       <ExternalLink className="w-3 h-3" /> Polygon Explorer
                     </Button>
-                    <Link href={`/credential/${params.id}/timeline`} className="block">
+                    <Link href={`/credential/${id}/timeline`} className="block">
                       <Button variant="ghost" className="w-full text-[10px] h-10 text-white/40 hover:text-white uppercase font-bold tracking-widest gap-2">
                         <History className="w-3 h-3" /> Audit History
                       </Button>
@@ -198,8 +211,8 @@ export default function CredentialDetail({ params }: { params: { id: string } })
         <QRShareModal 
           isOpen={isShareModalOpen} 
           onClose={() => setIsShareModalOpen(false)} 
-          credentialId={params.id}
-          title={credential.title}
+          credentialId={id}
+          title={`Credential #${credential?.id || id}`}
         />
       </main>
     </div>

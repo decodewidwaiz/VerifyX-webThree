@@ -63,7 +63,6 @@ export default function ShaderShowcase() {
         className="absolute inset-0 w-full h-full opacity-60"
         colors={["#000000", "#ffffff", "#06b6d4", "#f97316"]}
         speed={0.2}
-        wireframe="true"
       />
 
       {/* Fixed Header */}
@@ -83,9 +82,6 @@ export default function ShaderShowcase() {
           </motion.div>
 
           <nav className="hidden md:flex items-center gap-10">
-            <Link href="/verify" className="text-white/70 hover:text-white text-sm font-semibold tracking-wide transition-colors">
-              Verify
-            </Link>
             <Link href="/student" className="text-white/70 hover:text-white text-sm font-semibold tracking-wide transition-colors">
               Students
             </Link>
@@ -174,13 +170,13 @@ export default function ShaderShowcase() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.0 }}
           >
-            <Link href="/verify">
+            <Link href="/auth">
               <motion.button
                 className="px-12 py-5 rounded-full bg-transparent border-2 border-white/20 text-white font-bold text-sm tracking-widest uppercase transition-all duration-300 hover:bg-white/10 hover:border-cyan-400/50 hover:text-cyan-100 backdrop-blur-md min-w-[220px]"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Verify Now
+                Student Verify
               </motion.button>
             </Link>
             <Link href="/auth">
