@@ -74,19 +74,26 @@ export function verifyCredential(payload: { hash: string }) {
   });
 }
 
-export function extractOcrText(file: File) {
+export type OcrDetectionResult = {
+  success: boolean;
+  filename?: string;
+  tamperingScale: number;
+  isSuspicious: boolean;
+  verdict: string;
+  suspiciousRegions: Array<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }>;
+  elaImageUrl?: string | null;
+};
+
+export function detectDocumentTampering(file: File) {
   const formData = new FormData();
   formData.append("file", file);
 
-  return request<{
-    ocr: {
-      text?: string;
-      confidence?: number;
-      fileName?: string;
-      mode?: string;
-      message?: string;
-    };
-  }>("/ocr/extract", {
+  return request<{ ocr: OcrDetectionResult }>("/ocr/detect", {
     method: "POST",
     body: formData
   });
