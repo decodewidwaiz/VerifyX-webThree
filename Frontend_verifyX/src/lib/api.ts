@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const OCR_API_BASE_URL = process.env.NEXT_PUBLIC_OCR_API_URL || "https://ocr-service-mv6q.onrender.com";
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -93,28 +94,33 @@ export function detectDocumentTampering(file: File) {
   const formData = new FormData();
   formData.append("file", file);
 
-  return request<{ ocr: OcrDetectionResult }>("/ocr/detect", {
+  return fetch(`${OCR_API_BASE_URL.replace(/\/$/, "")}/detect`, {
     method: "POST",
     body: formData
-  });
-}
+  }).then(async (response) => {
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.success === false) {
+      throw new Error(payload.error || payload.detail || `OCR request failed with status ${response.status}`);
+    }
 
-export function validateOcr(payload: {
-  ocrText: string;
-  claimedMetadata: Record<string, string>;
-}) {
-  return request<{
-    validation: {
-      score: number;
-      checks: Array<{
-        field: string;
-        expected: string | null;
-        matched: boolean;
-      }>;
+    const elaPath = payload.ela_image_url as string | undefined;
+    const elaImageUrl = elaPath
+      ? /^https?:\/\//i.test(elaPath)
+        ? elaPath
+        : `${OCR_API_BASE_URL.replace(/\/$/, "")}/${elaPath.replace(/^\//, "")}`
+      : null;
+
+    return {
+      ocr: {
+        success: Boolean(payload.success),
+        filename: payload.filename,
+        tamperingScale: Number(payload.tampering_scale ?? 0),
+        isSuspicious: Boolean(payload.is_suspicious),
+        verdict: payload.verdict || "Document analysis complete",
+        suspiciousRegions: Array.isArray(payload.suspicious_regions) ? payload.suspicious_regions : [],
+        elaImageUrl
+      }
     };
-  }>("/ocr/validate", {
-    method: "POST",
-    body: JSON.stringify(payload)
   });
 }
 

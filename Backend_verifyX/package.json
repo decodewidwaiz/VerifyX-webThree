@@ -2,7 +2,7 @@
   "name": "verifyx-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "VerifyX backend API for MongoDB app storage, document requests, notifications, analytics, and optional OCR proxying.",
+  "description": "VerifyX backend API for MongoDB app storage, document requests, notifications, analytics, and optional non-chain cache records.",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",

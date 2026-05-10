@@ -7,7 +7,6 @@ const store = require("./db/store");
 
 const credentialRoutes = require("./routes/credentials");
 const verifyRoutes = require("./routes/verify");
-const ocrRoutes = require("./routes/ocr");
 const notificationRoutes = require("./routes/notifications");
 const analyticsRoutes = require("./routes/analytics");
 const documentRequestRoutes = require("./routes/documentRequests");
@@ -24,14 +23,12 @@ app.get("/api/health", (req, res) => {
     ok: true,
     service: "verifyx-backend",
     storage: store.state.mode,
-    auth: "metamask-frontend-only",
-    ocrAdapter: env.ocrApiUrl ? "external" : "not-configured"
+    auth: "metamask-frontend-only"
   });
 });
 
 app.use("/api/credentials", credentialRoutes);
 app.use("/api/verify", verifyRoutes);
-app.use("/api/ocr", ocrRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/document-requests", documentRequestRoutes);
