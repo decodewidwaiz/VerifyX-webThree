@@ -27,6 +27,10 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
+
 app.use("/api/credentials", credentialRoutes);
 app.use("/api/verify", verifyRoutes);
 app.use("/api/notifications", notificationRoutes);

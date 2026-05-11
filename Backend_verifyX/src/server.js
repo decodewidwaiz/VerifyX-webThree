@@ -4,10 +4,6 @@ const store = require("./db/store");
 
 async function start() {
   const dbState = await store.connectDatabase();
-  
-  app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
 
   app.listen(env.port, () => {
     console.log(`VerifyX backend running on http://localhost:${env.port}`);
