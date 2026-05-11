@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ShieldCheck, Wallet, Loader2, Menu, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getWalletSession, shortWallet, type WalletSession } from "@/lib/wallet-session";
+import { useRouter } from "next/navigation";
 
 const AnimatedNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
   return (
@@ -24,29 +26,31 @@ const AnimatedNavLink = ({ href, children }: { href: string; children: React.Rea
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
-  const [account, setAccount] = useState<string | null>(null);
+  const [session, setSession] = useState<WalletSession | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
   const shapeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const checkConnection = async () => {
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        try {
-          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
-          if (accounts.length > 0) setAccount(accounts[0]);
-        } catch (err) {
-          console.error("Error checking wallet connection:", err);
-        }
-        (window as any).ethereum.on('accountsChanged', (accounts: string[]) => {
-          setAccount(accounts.length > 0 ? accounts[0] : null);
-        });
-      }
+    const syncSession = () => {
+      setSession(getWalletSession());
     };
-    checkConnection();
+    syncSession();
+    window.addEventListener("verifyx-wallet-session", syncSession);
+    window.addEventListener("storage", syncSession);
+    return () => {
+      window.removeEventListener("verifyx-wallet-session", syncSession);
+      window.removeEventListener("storage", syncSession);
+    };
   }, []);
 
   const connectWallet = async () => {
+    if (!session) {
+      router.push("/auth");
+      return;
+    }
+
     if (typeof window === 'undefined' || !(window as any).ethereum) {
       toast({
         variant: "destructive",
@@ -58,11 +62,9 @@ export function Navbar() {
 
     try {
       setIsConnecting(true);
-      const accounts = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
-      setAccount(accounts[0]);
       toast({
-        title: "Wallet Connected",
-        description: `Connected as ${accounts[0].slice(0, 6)}...`,
+        title: "VerifyX session active",
+        description: `Signed in as ${session.role} with ${shortWallet(session.address)}.`,
       });
     } catch (error: any) {
       toast({
@@ -87,7 +89,7 @@ export function Navbar() {
   }, [isOpen]);
 
   const navLinksData = [
-    { label: 'Verify', href: '/verify' },
+    { label: 'Doc Check', href: '/document-check' },
     { label: 'Students', href: '/student' },
     { label: 'Institutions', href: '/institution' },
   ];
@@ -122,7 +124,7 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           <Link href="/auth">
             <button className="px-4 py-1.5 text-xs font-semibold text-muted-foreground hover:text-white transition-colors">
-              Log In
+              Enter App
             </button>
           </Link>
           <div className="relative group">
@@ -134,10 +136,10 @@ export function Navbar() {
             >
               {isConnecting ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : account ? (
+              ) : session ? (
                 <>
                   <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  {`${account.slice(0, 4)}...${account.slice(-4)}`}
+                  {shortWallet(session.address)}
                 </>
               ) : (
                 <>
@@ -178,14 +180,14 @@ export function Navbar() {
         <div className="flex flex-col items-center space-y-4 mt-8 w-full px-4">
           <Link href="/auth" className="w-full">
             <button className="w-full py-3 rounded-full border border-white/10 text-muted-foreground font-medium hover:bg-white/5 transition-colors">
-              Log In
+              Enter App
             </button>
           </Link>
           <button 
             onClick={connectWallet}
             className="w-full py-3 rounded-full bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors"
           >
-            {isConnecting ? "Connecting..." : account ? `${account.slice(0, 6)}...${account.slice(-4)}` : "Connect Wallet"}
+            {isConnecting ? "Connecting..." : session ? shortWallet(session.address) : "Connect Wallet"}
           </button>
         </div>
       </div>

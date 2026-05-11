@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
+import { DashboardShell } from "@/components/layout/DashboardShell";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { Card } from "@/components/ui/card";
 import { 
@@ -16,62 +16,89 @@ import {
 } from "recharts";
 import { 
   Users, 
-  GraduationCap, 
   ShieldCheck, 
   AlertCircle,
   TrendingUp,
   FileCheck
 } from "lucide-react";
-
-const data = [
-  { name: 'Jan', issued: 400, verified: 240 },
-  { name: 'Feb', issued: 300, verified: 139 },
-  { name: 'Mar', issued: 200, verified: 980 },
-  { name: 'Apr', issued: 278, verified: 390 },
-  { name: 'May', issued: 189, verified: 480 },
-  { name: 'Jun', issued: 239, verified: 380 },
-  { name: 'Jul', issued: 349, verified: 430 },
-];
+import { useEffect, useMemo, useState } from "react";
+import { getAnalyticsOverview, listDocumentRequests, type AnalyticsOverview, type DocumentRequest } from "@/lib/api";
+import { getWalletSession } from "@/lib/wallet-session";
 
 export default function InstitutionAnalytics() {
-  return (
-    <div className="min-h-screen bg-[#0A0D10]">
-      <DashboardSidebar role="institution" />
-      
-      <main className="md:ml-64 p-8">
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold font-headline mb-1">Performance Analytics</h1>
-          <p className="text-muted-foreground">Data-driven insights into your credential ecosystem.</p>
-        </header>
+  const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
+  const [requests, setRequests] = useState<DocumentRequest[]>([]);
 
+  useEffect(() => {
+    const session = getWalletSession();
+    getAnalyticsOverview()
+      .then((response) => setOverview(response.overview))
+      .catch(() => setOverview(null));
+    if (session?.institutionName) {
+      listDocumentRequests({ institutionName: session.institutionName })
+        .then((response) => setRequests(response.requests))
+        .catch(() => setRequests([]));
+    }
+  }, []);
+
+  const chartData = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - index));
+      return {
+        date,
+        name: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        issued: 0,
+        requests: 0
+      };
+    });
+
+    for (const request of requests) {
+      if (!request.createdAt) continue;
+      const created = new Date(request.createdAt);
+      const bucket = days.find((day) => day.date.toDateString() === created.toDateString());
+      if (!bucket) continue;
+      bucket.requests += 1;
+      if (request.status === "issued") bucket.issued += 1;
+    }
+
+    return days.map(({ date, ...item }) => item);
+  }, [requests]);
+
+  const uniqueStudents = useMemo(() => {
+    return new Set(requests.map((request) => request.studentProfileId || request.studentWallet).filter(Boolean)).size;
+  }, [requests]);
+
+  const issuedCount = requests.filter((request) => request.status === "issued").length;
+  const openCount = requests.filter((request) => request.status === "pending" || request.status === "approved").length;
+  const rejectedCount = requests.filter((request) => request.status === "rejected").length;
+
+  return (
+    <DashboardShell
+      role="institution"
+      title="Live Analytics"
+      description="Real counts from document requests, issued proofs, and backend storage."
+    >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <InfoCard 
             label="Total Issued" 
-            value="12,402" 
+            value={issuedCount} 
             icon={FileCheck} 
-            trend="+12%" 
-            trendDirection="up" 
           />
           <InfoCard 
-            label="Active Graduates" 
-            value="11,890" 
+            label="Students" 
+            value={uniqueStudents} 
             icon={Users} 
-            trend="+5.4%" 
-            trendDirection="up" 
           />
           <InfoCard 
-            label="Verification Requests" 
-            value="3,412" 
+            label="Open Requests" 
+            value={openCount} 
             icon={ShieldCheck} 
-            trend="+24%" 
-            trendDirection="up" 
           />
           <InfoCard 
-            label="Fraud Alerts" 
-            value="2" 
+            label="Rejected" 
+            value={rejectedCount} 
             icon={AlertCircle} 
-            trend="-80%" 
-            trendDirection="down" 
           />
         </div>
 
@@ -79,11 +106,11 @@ export default function InstitutionAnalytics() {
           <Card className="p-8 border-white/5 glass-panel">
             <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary" />
-              Issuance vs Verifications
+              Issued vs Requests
             </h3>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
+                <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                   <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
@@ -92,7 +119,7 @@ export default function InstitutionAnalytics() {
                     itemStyle={{ color: '#fff' }}
                   />
                   <Bar dataKey="issued" fill="#3D8BFF" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="verified" fill="#88888850" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="requests" fill="#88888850" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -105,20 +132,19 @@ export default function InstitutionAnalytics() {
             </h3>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data}>
+                <LineChart data={chartData.map((item) => ({ ...item, score: overview?.protocolScore ?? 100 }))}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                   <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
                   <RechartsTooltip 
                     contentStyle={{ backgroundColor: '#141A21', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                   />
-                  <Line type="monotone" dataKey="issued" stroke="#3D8BFF" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="score" stroke="#3D8BFF" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </Card>
         </div>
-      </main>
-    </div>
+    </DashboardShell>
   );
 }
