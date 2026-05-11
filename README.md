@@ -10,45 +10,7 @@
   [![MetaMask](https://img.shields.io/badge/Auth-MetaMask-F6851B?style=for-the-badge)](https://metamask.io/)
 </div>
 
-## Local Ports
 
-- VCRegistry Web3 API: `https://verifyx-web3.onrender.com`
-- VerifyX frontend: `http://localhost:3000`
-- VerifyX app backend: `http://localhost:4000`
-
-The Web3 registry is already deployed, so the frontend can run normally on local port `3000` and call the deployed registry.
-
-## Backend API
-
-The backend lives in `Backend_verifyX` and runs on `http://localhost:4000`.
-
-```bash
-cd Backend_verifyX
-npm install
-copy .env.example .env
-npm run dev
-```
-
-Use MetaMask from the frontend for identity. MongoDB Atlas stores app workflow data such as document requests and notifications. The separate VCRegistry Web3 API is configured in the frontend with `NEXT_PUBLIC_WEB3_API_URL`; Pinata keys, RPC URLs, private keys, and contract addresses stay with the Web3 service, not this backend. Without `MONGODB_URI`, or with `MONGODB_URI=memory`, the backend uses in-memory storage so local app testing works immediately.
-
-## Frontend
-
-```bash
-cd Frontend_verifyX
-npm install
-copy .env.example .env.local
-npm run dev
-```
-
-Open `http://localhost:3000`.
-
-The frontend expects the Web3 registry from your docs at:
-
-```env
-NEXT_PUBLIC_WEB3_API_URL=https://verifyx-web3.onrender.com
-```
-
-<br />
 
 ## 🌟 About VerifyX
 
@@ -128,7 +90,7 @@ Ensure you have [Node.js](https://nodejs.org/) installed (v20 or higher recommen
 
 ### 🌍 Open the App
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. The main entry point is `src/app/page.tsx`.
+Open [http://localhost:3000](https://verify-x-web-three.vercel.app/) with your browser to see the result. The main entry point is `src/app/page.tsx`.
 
 ---
 
