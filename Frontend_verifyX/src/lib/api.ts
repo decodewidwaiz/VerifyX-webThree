@@ -79,9 +79,8 @@ export type OcrDetectionResult = {
   success: boolean;
   filename?: string;
   tamperingScale: number;
-  isSuspicious: boolean;
   verdict: string;
-  suspiciousRegions: Array<{
+  detectionRegions: Array<{
     x: number;
     y: number;
     w: number;
@@ -115,9 +114,8 @@ export function detectDocumentTampering(file: File) {
         success: Boolean(payload.success),
         filename: payload.filename,
         tamperingScale: Number(payload.tampering_scale ?? 0),
-        isSuspicious: Boolean(payload.is_suspicious),
         verdict: payload.verdict || "Document analysis complete",
-        suspiciousRegions: Array.isArray(payload.suspicious_regions) ? payload.suspicious_regions : [],
+        detectionRegions: Array.isArray(payload.suspicious_regions) ? payload.suspicious_regions : [],
         elaImageUrl
       }
     };
